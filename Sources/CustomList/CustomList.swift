@@ -6,7 +6,7 @@ public struct CustomList<T:CustomListCompatible, Content>: View where Content: V
     var tappedRowForItem:(Binding<T>) -> () = {item in print("Editing \(item)")}
     var leftLabelString:(T) -> String = {_ in return "Left"}
     var rightLabelString:(T) -> String = {_ in return "Right"}
-    @ViewBuilder var rowBuilder:([T], T, Int) -> Content
+    @ViewBuilder var rowBuilder:([T], Binding<T>, Int) -> Content
     @State private var useDefaultRowBuilder = false
     @State private var draggedItem: T?
     
@@ -14,7 +14,7 @@ public struct CustomList<T:CustomListCompatible, Content>: View where Content: V
         ScrollView {
             LazyVStack(spacing:0) {
                 ForEach(Array($list.enumerated()), id: \.offset) { index, $item in
-                    rowDecider(list: list, item: item, index: index)
+                    rowDecider(list: list, item: $item, index: index)
                         .onTapGesture {
                             tappedRowForItem($item)
                         }
@@ -31,7 +31,7 @@ public struct CustomList<T:CustomListCompatible, Content>: View where Content: V
     }
     
     @ViewBuilder
-    func rowDecider(list:[T], item:T, index:Int) -> some View {
+    func rowDecider(list:[T], item:Binding<T>, index:Int) -> some View {
         if useDefaultRowBuilder {
             defaultRowBuilder(list: list, item: item, index: index)
         } else {
@@ -39,16 +39,16 @@ public struct CustomList<T:CustomListCompatible, Content>: View where Content: V
         }
     }
     
-    func defaultRowBuilder(list:[T], item:T, index:Int) -> some View {
+    func defaultRowBuilder(list:[T], item:Binding<T>, index:Int) -> some View {
         ZStack {
             Rectangle()
                 .foregroundColor(Color(uiColor: .systemBackground))
             VStack(spacing: 0) {
                 HStack {
-                    Text(leftLabelString(item))
+                    Text(leftLabelString(item.wrappedValue))
                         .fontWeight(.bold)
                     Spacer()
-                    Text(rightLabelString(item))
+                    Text(rightLabelString(item.wrappedValue))
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 10)
