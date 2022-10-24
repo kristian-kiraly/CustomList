@@ -2,11 +2,11 @@ import SwiftUI
 
 public struct CustomList<T:CustomListCompatible, Content>: View where Content: View {
     @Binding var list:[T]
-    var allowsReordering:Bool = true
-    var tappedRowForItem:(Binding<T>) -> () = {item in print("Editing \(item)")}
-    var leftLabelString:(T) -> String = {_ in return "Left"}
-    var rightLabelString:(T) -> String = {_ in return "Right"}
-    @ViewBuilder var rowBuilder:([T], Binding<T>, Int) -> Content
+    public var allowsReordering:Bool = true
+    public var tappedRowForItem:(Binding<T>) -> () = {item in print("Editing \(item)")}
+    public var leftLabelString:(T) -> String = {_ in return "Left"}
+    public var rightLabelString:(T) -> String = {_ in return "Right"}
+    @ViewBuilder public var rowBuilder:([T], Binding<T>, Int) -> Content
     @State private var useDefaultRowBuilder = false
     @State private var draggedItem: T?
     
@@ -31,7 +31,7 @@ public struct CustomList<T:CustomListCompatible, Content>: View where Content: V
     }
     
     @ViewBuilder
-    func rowDecider(list:[T], item:Binding<T>, index:Int) -> some View {
+    private func rowDecider(list:[T], item:Binding<T>, index:Int) -> some View {
         if useDefaultRowBuilder {
             defaultRowBuilder(list: list, item: item, index: index)
         } else {
@@ -39,7 +39,7 @@ public struct CustomList<T:CustomListCompatible, Content>: View where Content: V
         }
     }
     
-    func defaultRowBuilder(list:[T], item:Binding<T>, index:Int) -> some View {
+    private func defaultRowBuilder(list:[T], item:Binding<T>, index:Int) -> some View {
         ZStack {
             Rectangle()
                 .foregroundColor(Color(uiColor: .systemBackground))
@@ -63,7 +63,7 @@ public struct CustomList<T:CustomListCompatible, Content>: View where Content: V
 }
 
 extension CustomList where Content == EmptyView {
-    init(list:Binding<[T]>, tappedRowForItem:@escaping (Binding<T>) -> () = {_ in }, leftLabelString:@escaping (T) -> String = {_ in "Left"}, rightLabelString:@escaping (T) -> String = {_ in "Right"}, allowsReordering:Bool = true) {
+    public init(list:Binding<[T]>, tappedRowForItem:@escaping (Binding<T>) -> () = {_ in }, leftLabelString:@escaping (T) -> String = {_ in "Left"}, rightLabelString:@escaping (T) -> String = {_ in "Right"}, allowsReordering:Bool = true) {
         self.init(list:list, allowsReordering:allowsReordering, tappedRowForItem: tappedRowForItem, leftLabelString: leftLabelString, rightLabelString: rightLabelString, rowBuilder: { _,_,_ in EmptyView() })
         self.useDefaultRowBuilder = true
     }
@@ -73,7 +73,7 @@ public protocol CustomListCompatible: Equatable {
     static var dragIdentifier:String { get } //"get" is so it's read-only
 }
 
-struct CustomListDropDelegate<T: Equatable> : DropDelegate {
+fileprivate struct CustomListDropDelegate<T: Equatable> : DropDelegate {
     let item : T
     @Binding var items : [T]
     @Binding var draggedItem : T?
