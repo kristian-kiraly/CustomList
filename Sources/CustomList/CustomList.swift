@@ -1,12 +1,12 @@
 import SwiftUI
 
 public struct CustomList<T:CustomListCompatible, Content>: View where Content: View {
-    @Binding var list:[T]
+    @Binding public var list:[T]
     public var allowsReordering:Bool = true
     public var tappedRowForItem:(Binding<T>) -> () = {item in print("Editing \(item)")}
     public var leftLabelString:(T) -> String = {_ in return "Left"}
     public var rightLabelString:(T) -> String = {_ in return "Right"}
-    @ViewBuilder public var rowBuilder:([T], Binding<T>, Int) -> Content
+    public var rowBuilder:([T], Binding<T>, Int) -> Content
     @State private var useDefaultRowBuilder = false
     @State private var draggedItem: T?
     
