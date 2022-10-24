@@ -62,8 +62,8 @@ public struct CustomList<T:CustomListCompatible, Content>: View where Content: V
     }
 }
 
-extension CustomList where Content == EmptyView {
-    public init(list:Binding<[T]>, tappedRowForItem:@escaping (Binding<T>) -> () = {_ in }, leftLabelString:@escaping (T) -> String = {_ in "Left"}, rightLabelString:@escaping (T) -> String = {_ in "Right"}, allowsReordering:Bool = true) {
+public extension CustomList where Content == EmptyView {
+    init(list:Binding<[T]>, tappedRowForItem:@escaping (Binding<T>) -> () = {_ in }, leftLabelString:@escaping (T) -> String = {_ in "Left"}, rightLabelString:@escaping (T) -> String = {_ in "Right"}, allowsReordering:Bool = true) {
         self.init(list:list, allowsReordering:allowsReordering, tappedRowForItem: tappedRowForItem, leftLabelString: leftLabelString, rightLabelString: rightLabelString, rowBuilder: { _,_,_ in EmptyView() })
         self.useDefaultRowBuilder = true
     }
