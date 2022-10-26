@@ -38,7 +38,6 @@ public struct CustomList<T:CustomListCompatible, Content>: View where Content: V
                                 }
                                 .onDrop(of: [.data], delegate: CustomListDropDelegate(item: item, items: $list, draggedItem: $draggedItem))
                             }
-                            .contentShape(Rectangle())
                     }
                 }
             }
@@ -51,6 +50,7 @@ public struct CustomList<T:CustomListCompatible, Content>: View where Content: V
             defaultRowBuilder(list: list, item: item, index: index)
         } else {
             rowBuilder(list, item, index)
+                .contentShape(Rectangle())
         }
     }
     
