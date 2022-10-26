@@ -23,18 +23,22 @@ public struct CustomList<T:CustomListCompatible, Content>: View where Content: V
     public var body: some View {
         ScrollView {
             LazyVStack(spacing:0) {
-                ForEach(Array($list.enumerated()), id: \.offset) { index, $item in
-                    rowDecider(list: list, item: $item, index: index)
-                        .onTapGesture {
-                            tappedRowForItem($item)
-                        }
-                        .if(allowsReordering) { view in
-                            view.onDrag {
-                                self.draggedItem = item
-                                return NSItemProvider(item: nil, typeIdentifier: T.dragIdentifier)
+                ForEach($list, id: \.id) { $item in
+                    if let index = list.firstIndex(of: item) {
+                        rowDecider(list: list, item: $item, index: index)
+                            .onTapGesture {
+                                tappedRowForItem($item)
                             }
-                            .onDrop(of: [.data], delegate: CustomListDropDelegate(item: item, items: $list, draggedItem: $draggedItem))
-                        }
+                            .if(allowsReordering) { view in
+                                view.onDrag {
+                                    withAnimation {
+                                        self.draggedItem = item
+                                        return NSItemProvider(item: nil, typeIdentifier: T.dragIdentifier)
+                                    }
+                                }
+                                .onDrop(of: [.data], delegate: CustomListDropDelegate(item: item, items: $list, draggedItem: $draggedItem))
+                            }
+                    }
                 }
             }
         }
@@ -79,7 +83,7 @@ public extension CustomList where Content == EmptyView {
     }
 }
 
-public protocol CustomListCompatible: Equatable {
+public protocol CustomListCompatible: Equatable, Identifiable {
     static var dragIdentifier:String { get } //"get" is so it's read-only
 }
 
