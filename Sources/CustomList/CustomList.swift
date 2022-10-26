@@ -31,10 +31,12 @@ public struct CustomList<T:CustomListCompatible, Content>: View where Content: V
                             }
                             .if(allowsReordering) { view in
                                 view.onDrag {
-                                    withAnimation {
-                                        self.draggedItem = item
-                                        return NSItemProvider(item: nil, typeIdentifier: T.dragIdentifier)
+                                    DispatchQueue.main.async {
+                                        withAnimation {
+                                            self.draggedItem = item
+                                        }
                                     }
+                                    return NSItemProvider(item: nil, typeIdentifier: T.dragIdentifier)
                                 }
                                 .onDrop(of: [.data], delegate: CustomListDropDelegate(item: item, items: $list, draggedItem: $draggedItem))
                             }
