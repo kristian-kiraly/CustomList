@@ -21,21 +21,19 @@ public struct CustomList<T:CustomListCompatible, Content>: View where Content: V
     }
     
     public var body: some View {
-        ScrollView {
-            LazyVStack(spacing:0) {
-                ForEach(Array($list.enumerated()), id:\.element.id) { index, $item in
-                    rowDecider(list: list, item: $item, index: index)
-                        .onTapGesture {
-                            tappedRowForItem($item)
+        LazyVStack(spacing:0) {
+            ForEach(Array($list.enumerated()), id:\.element.id) { index, $item in
+                rowDecider(list: list, item: $item, index: index)
+                    .onTapGesture {
+                        tappedRowForItem($item)
+                    }
+                    .if(allowsReordering) { view in
+                        view.onDrag {
+                            self.draggedItem = item
+                            return NSItemProvider(item: nil, typeIdentifier: T.dragIdentifier)
                         }
-                        .if(allowsReordering) { view in
-                            view.onDrag {
-                                self.draggedItem = item
-                                return NSItemProvider(item: nil, typeIdentifier: T.dragIdentifier)
-                            }
-                            .onDrop(of: [.data], delegate: CustomListDropDelegate(item: item, items: $list, draggedItem: $draggedItem))
-                        }
-                }
+                        .onDrop(of: [.data], delegate: CustomListDropDelegate(item: item, items: $list, draggedItem: $draggedItem))
+                    }
             }
         }
     }
