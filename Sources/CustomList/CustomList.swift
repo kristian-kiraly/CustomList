@@ -3,6 +3,7 @@ import SwiftUI
 public struct CustomList<T:CustomListCompatible, Content>: View where Content: View {
     @Binding public var list:[T]
     public var allowsReordering:Bool = true
+    public var isLazy:Bool = true
     public var tappedRowForItem:(Binding<T>) -> () = {item in print("Editing \(item)")}
     public var leftLabelString:(T) -> String = {_ in return "Left"}
     public var rightLabelString:(T) -> String = {_ in return "Right"}
@@ -11,9 +12,10 @@ public struct CustomList<T:CustomListCompatible, Content>: View where Content: V
     @State private var draggedItem: T?
     
     
-    public init(list:Binding<[T]>, tappedRowForItem:@escaping (Binding<T>) -> () = {_ in }, leftLabelString:@escaping (T) -> String = {_ in "Left"}, rightLabelString:@escaping (T) -> String = {_ in "Right"}, allowsReordering:Bool = true, rowBuilder:@escaping ([T], Binding<T>, Int) -> Content) {
+    public init(list:Binding<[T]>, tappedRowForItem:@escaping (Binding<T>) -> () = {_ in }, leftLabelString:@escaping (T) -> String = {_ in "Left"}, rightLabelString:@escaping (T) -> String = {_ in "Right"}, allowsReordering:Bool = true, isLazy:Bool = true, rowBuilder:@escaping ([T], Binding<T>, Int) -> Content) {
         self._list = list
         self.allowsReordering = allowsReordering
+        self.isLazy = isLazy
         self.tappedRowForItem = tappedRowForItem
         self.leftLabelString = leftLabelString
         self.rightLabelString = rightLabelString
@@ -21,20 +23,30 @@ public struct CustomList<T:CustomListCompatible, Content>: View where Content: V
     }
     
     public var body: some View {
-        LazyVStack(spacing:0) {
-            ForEach(Array($list.enumerated()), id:\.element.id) { index, $item in
-                rowDecider(list: list, item: $item, index: index)
-                    .onTapGesture {
-                        tappedRowForItem($item)
-                    }
-                    .if(allowsReordering) { view in
-                        view.onDrag {
-                            self.draggedItem = item
-                            return NSItemProvider(item: nil, typeIdentifier: T.dragIdentifier)
-                        }
-                        .onDrop(of: [.data], delegate: CustomListDropDelegate(item: item, items: $list, draggedItem: $draggedItem))
-                    }
+        if isLazy {
+            LazyVStack(spacing:0) {
+                listSection
             }
+        } else {
+            VStack(spacing: 0) {
+                listSection
+            }
+        }
+    }
+    
+    private var listSection: some View {
+        ForEach(Array($list.enumerated()), id:\.element.id) { index, $item in
+            rowDecider(list: list, item: $item, index: index)
+                .onTapGesture {
+                    tappedRowForItem($item)
+                }
+                .if(allowsReordering) { view in
+                    view.onDrag {
+                        self.draggedItem = item
+                        return NSItemProvider(item: nil, typeIdentifier: T.dragIdentifier)
+                    }
+                    .onDrop(of: [.data], delegate: CustomListDropDelegate(item: item, items: $list, draggedItem: $draggedItem))
+                }
         }
     }
     
@@ -72,8 +84,8 @@ public struct CustomList<T:CustomListCompatible, Content>: View where Content: V
 }
 
 public extension CustomList where Content == EmptyView {
-    init(list:Binding<[T]>, tappedRowForItem:@escaping (Binding<T>) -> () = {_ in }, leftLabelString:@escaping (T) -> String = {_ in "Left"}, rightLabelString:@escaping (T) -> String = {_ in "Right"}, allowsReordering:Bool = true) {
-        self.init(list:list, tappedRowForItem: tappedRowForItem, leftLabelString: leftLabelString, rightLabelString: rightLabelString, allowsReordering:allowsReordering, rowBuilder: { _,_,_ in EmptyView() })
+    init(list:Binding<[T]>, tappedRowForItem:@escaping (Binding<T>) -> () = {_ in }, leftLabelString:@escaping (T) -> String = {_ in "Left"}, rightLabelString:@escaping (T) -> String = {_ in "Right"}, allowsReordering:Bool = true, isLazy:Bool = true) {
+        self.init(list:list, tappedRowForItem: tappedRowForItem, leftLabelString: leftLabelString, rightLabelString: rightLabelString, allowsReordering:allowsReordering, isLazy: isLazy, rowBuilder: { _,_,_ in EmptyView() })
         self.useDefaultRowBuilder = true
     }
 }
