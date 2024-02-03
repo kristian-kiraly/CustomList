@@ -1,6 +1,6 @@
 import SwiftUI
 
-public struct CustomList<T:CustomListCompatible, Content>: View where Content: View {
+public struct CustomList<T:CustomListCompatible, Content: View>: View {
     @Binding public var list:[T]
     public var allowsReordering:Bool = true
     public var isLazy:Bool = true
@@ -12,7 +12,7 @@ public struct CustomList<T:CustomListCompatible, Content>: View where Content: V
     @State private var draggedItem: T?
     
     
-    public init(list:Binding<[T]>, tappedRowForItem:@escaping (Binding<T>) -> () = {_ in }, leftLabelString:@escaping (T) -> String = {_ in "Left"}, rightLabelString:@escaping (T) -> String = {_ in "Right"}, allowsReordering:Bool = true, isLazy:Bool = true, rowBuilder:@escaping ([T], Binding<T>, Int) -> Content) {
+    public init(list:Binding<[T]>, tappedRowForItem:@escaping (Binding<T>) -> () = {_ in }, leftLabelString:@escaping (T) -> String = {_ in "Left"}, rightLabelString:@escaping (T) -> String = {_ in "Right"}, allowsReordering:Bool = true, isLazy:Bool = true, @ViewBuilder rowBuilder:@escaping ([T], Binding<T>, Int) -> Content) {
         self._list = list
         self.allowsReordering = allowsReordering
         self.isLazy = isLazy

@@ -1,6 +1,6 @@
 //
-//  File.swift
-//  
+//  CellButtons.swift
+//
 //
 //  Created by Kristian Kiraly on 10/21/22.
 //
@@ -29,7 +29,7 @@ public struct CellButtonView: View {
             Image(systemName: image)
             Text(title)
         }.padding(5)
-        .foregroundColor(.primary)
+        .foregroundColor(.white)
         .font(.subheadline)
         .frame(width: buttonWidth, height: cellHeight)
     }
