@@ -1,19 +1,64 @@
-import SwiftUI
+//
+//  CustomList.swift
+//
+//
+//  Created by Kristian Kiraly on 10/21/22.
+//
 
-public struct CustomList<T:CustomListCompatible, Content: View>: View {
-    @Binding public var list:[T]
-    public var allowsReordering:Bool = true
-    public var isLazy:Bool = true
-    public var tappedRowForItem:(Binding<T>) -> () = {item in print("Editing \(item)")}
-    public var leftLabelString:(T) -> String = {_ in return "Left"}
-    public var rightLabelString:(T) -> String = {_ in return "Right"}
-    @ViewBuilder public var rowBuilder:([T], Binding<T>, Int) -> Content
+import SwiftUI
+import SwipeActions
+
+public enum CellButtons: String, Identifiable {
+    case edit = "Edit"
+    case delete = "Delete"
+    case save = "Save"
+    case info = "Info"
+    
+    public var id: String {
+        self.rawValue
+    }
+    
+    public var backgroundColor: Color {
+        switch self {
+        case .edit:
+            return .pink
+        case .delete:
+            return .red
+        case .save:
+            return .blue
+        case .info:
+            return .green
+        }
+    }
+}
+
+public extension View {
+    @available(*, deprecated, message: "Will only support trailing buttons to accommodate swipe gestures. Use .addSwipeAction(SwipeAction) in the future instead")
+    @ViewBuilder
+    func addButtonActions(leadingButtons: [CellButtons], trailingButton: [CellButtons], onClick: @escaping (CellButtons) -> Void) -> some View {
+        let buttons = (leadingButtons + trailingButton).map { button in
+            SwipeAction(name: button.rawValue, action: {onClick(button)}, backgroundColor: button.backgroundColor)
+        }
+        self.addSwipeActions(buttons)
+    }
+}
+
+public struct CustomList<T: CustomListCompatible, Content: View>: View {
+    @Binding public var list: [T]
+    public var allowsReordering: Bool
+    public var isLazy:Bool
+    public var tappedRowForItem: (Binding<T>) -> ()
+    public var leftLabelString: (T) -> String
+    public var rightLabelString: (T) -> String
+    @ViewBuilder public var rowBuilder: ([T], Binding<T>, Int) -> Content
     @State private var useDefaultRowBuilder = false
     @State private var draggedItem: T?
     
+    @State private var localList: [T]
     
     public init(list:Binding<[T]>, tappedRowForItem:@escaping (Binding<T>) -> () = {_ in }, leftLabelString:@escaping (T) -> String = {_ in "Left"}, rightLabelString:@escaping (T) -> String = {_ in "Right"}, allowsReordering:Bool = true, isLazy:Bool = true, @ViewBuilder rowBuilder:@escaping ([T], Binding<T>, Int) -> Content) {
         self._list = list
+        self._localList = State(initialValue: list.wrappedValue)
         self.allowsReordering = allowsReordering
         self.isLazy = isLazy
         self.tappedRowForItem = tappedRowForItem
@@ -23,20 +68,29 @@ public struct CustomList<T:CustomListCompatible, Content: View>: View {
     }
     
     public var body: some View {
-        if isLazy {
-            LazyVStack(spacing:0) {
-                listSection
+        Group {
+            if isLazy {
+                LazyVStack(spacing:0) {
+                    listSection
+                }
+            } else {
+                VStack(spacing: 0) {
+                    listSection
+                }
             }
-        } else {
-            VStack(spacing: 0) {
-                listSection
-            }
+        }
+        .onChange(of: list) { newValue in
+            localList = newValue
+        }
+        .onChange(of: localList) { newValue in
+            guard newValue != list else { return }
+            list = newValue
         }
     }
     
     private var listSection: some View {
-        ForEach(Array($list.enumerated()), id:\.element.id) { index, $item in
-            rowDecider(list: list, item: $item, index: index)
+        ForEach(Array($localList.enumerated()), id:\.element.id) { index, $item in
+            rowDecider(list: localList, item: $item, index: index)
                 .onTapGesture {
                     tappedRowForItem($item)
                 }
@@ -45,9 +99,17 @@ public struct CustomList<T:CustomListCompatible, Content: View>: View {
                         self.draggedItem = item
                         return NSItemProvider(item: nil, typeIdentifier: T.dragIdentifier)
                     }
-                    .onDrop(of: [.data], delegate: CustomListDropDelegate(item: item, items: $list, draggedItem: $draggedItem))
+                    .onDrop(of: [.data], delegate: CustomListDropDelegate(item: item, items: $localList, draggedItem: $draggedItem))
+                }
+                .contentShape(Rectangle())
+                .background {
+                    GeometryReader { geo in
+                        Color(UIColor.systemBackground)
+                            .frame(width: geo.size.width, height: geo.size.height)
+                    }
                 }
         }
+        .animation(.default, value: localList)
     }
     
     @ViewBuilder

@@ -1,0 +1,14 @@
+{
+  "pins" : [
+    {
+      "identity" : "swipeactions",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/kristian-kiraly/SwipeActions",
+      "state" : {
+        "revision" : "4ffde8d2381f8b48f8af0ec853129ef3b0f81542",
+        "version" : "1.0.0"
+      }
+    }
+  ],
+  "version" : 2
+}
