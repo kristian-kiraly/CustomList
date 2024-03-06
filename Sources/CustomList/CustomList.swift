@@ -54,6 +54,24 @@ public struct CustomList<T: CustomListCompatible, Content: View>: View {
     @State private var useDefaultRowBuilder = false
     @State private var draggedItem: T?
     
+    public init(
+        list:Binding<[T]>,
+        tappedRowForItem:@escaping (Binding<T>) -> () = {_ in },
+        leftLabelString:@escaping (T) -> String = {_ in "Left"},
+        rightLabelString:@escaping (T) -> String = {_ in "Right"},
+        allowsReordering:Bool = true,
+        isLazy:Bool = true,
+        @ViewBuilder rowBuilder:@escaping ([T], Binding<T>, Int) -> Content
+    ) {
+        self._list = list
+        self.allowsReordering = allowsReordering
+        self.isLazy = isLazy
+        self.tappedRowForItem = tappedRowForItem
+        self.leftLabelString = leftLabelString
+        self.rightLabelString = rightLabelString
+        self.rowBuilder = rowBuilder
+    }
+    
     public var body: some View {
         Group {
             if isLazy {
@@ -156,7 +174,7 @@ public extension CustomList where Content == EmptyView {
          allowsReordering:Bool = true,
          isLazy:Bool = true
     ) {
-        self.init(list:list, allowsReordering:allowsReordering, isLazy: isLazy, tappedRowForItem: tappedRowForItem, leftLabelString: leftLabelString, rightLabelString: rightLabelString, rowBuilder: { _, _, _ in EmptyView() })
+        self.init(list:list, tappedRowForItem: tappedRowForItem, leftLabelString: leftLabelString, rightLabelString: rightLabelString, allowsReordering:allowsReordering, isLazy: isLazy, rowBuilder: { _, _, _ in EmptyView() })
         self.useDefaultRowBuilder = true
     }
 }
