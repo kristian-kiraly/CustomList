@@ -45,27 +45,14 @@ public extension View {
 
 public struct CustomList<T: CustomListCompatible, Content: View>: View {
     @Binding public var list: [T]
-    public var allowsReordering: Bool
-    public var isLazy:Bool
-    public var tappedRowForItem: (Binding<T>) -> ()
-    public var leftLabelString: (T) -> String
-    public var rightLabelString: (T) -> String
+    public var allowsReordering: Bool = true
+    public var isLazy:Bool = true
+    public var tappedRowForItem: (Binding<T>) -> () = {_ in}
+    public var leftLabelString: (T) -> String = {_ in "Left"}
+    public var rightLabelString: (T) -> String = {_ in "Right"}
     @ViewBuilder public var rowBuilder: ([T], Binding<T>, Int) -> Content
     @State private var useDefaultRowBuilder = false
     @State private var draggedItem: T?
-    
-    @State private var localList: [T]
-    
-    public init(list:Binding<[T]>, tappedRowForItem:@escaping (Binding<T>) -> () = {_ in }, leftLabelString:@escaping (T) -> String = {_ in "Left"}, rightLabelString:@escaping (T) -> String = {_ in "Right"}, allowsReordering:Bool = true, isLazy:Bool = true, @ViewBuilder rowBuilder:@escaping ([T], Binding<T>, Int) -> Content) {
-        self._list = list
-        self._localList = State(initialValue: list.wrappedValue)
-        self.allowsReordering = allowsReordering
-        self.isLazy = isLazy
-        self.tappedRowForItem = tappedRowForItem
-        self.leftLabelString = leftLabelString
-        self.rightLabelString = rightLabelString
-        self.rowBuilder = rowBuilder
-    }
     
     public var body: some View {
         Group {
@@ -79,59 +66,75 @@ public struct CustomList<T: CustomListCompatible, Content: View>: View {
                 }
             }
         }
-        .onChange(of: list) { newValue in
-            localList = newValue
-        }
-        .onChange(of: localList) { newValue in
-            guard newValue != list else { return }
-            list = newValue
-        }
+    }
+    
+    private func indexOfItem(item: T) -> Int {
+        guard let index = list.firstIndex(where: { $0.id == item.id}) else { fatalError("No item with matching id found") }
+        return index
+    }
+    
+    private func setItem(item: T) {
+        list[indexOfItem(item: item)] = item
+    }
+    
+    private func underlyingItemForItem(item: T) -> T {
+        guard let underlyingItem = list.first(where: {$0.id == item.id}) else { fatalError("No item with matching id found")}
+        return underlyingItem
     }
     
     private var listSection: some View {
-        ForEach(Array($localList.enumerated()), id:\.element.id) { index, $item in
-            rowDecider(list: localList, item: $item, index: index)
-                .onTapGesture {
-                    tappedRowForItem($item)
+        ForEach(list) { item in
+            let index = indexOfItem(item: item)
+            let item = Binding { underlyingItemForItem(item: item) } set: { setItem(item: $0) }
+            Group {
+                if allowsReordering {
+                    rowDecider(list: list, item: item, index: index)
+                        .onDrag {
+                            self.draggedItem = item.wrappedValue
+                            return NSItemProvider(item: nil, typeIdentifier: T.dragIdentifier)
+                        }
+                        .onDrop(of: [.data], delegate: CustomListDropDelegate(item: item.wrappedValue, items: $list, draggedItem: $draggedItem))
+                } else {
+                    rowDecider(list: list, item: item, index: index)
                 }
-                .if(allowsReordering) { view in
-                    view.onDrag {
-                        self.draggedItem = item
-                        return NSItemProvider(item: nil, typeIdentifier: T.dragIdentifier)
-                    }
-                    .onDrop(of: [.data], delegate: CustomListDropDelegate(item: item, items: $localList, draggedItem: $draggedItem))
+            }
+            .id(item.wrappedValue.id)
+            .onTapGesture {
+                tappedRowForItem(item)
+            }
+            .contentShape(Rectangle())
+            .background {
+                GeometryReader { geo in
+                    Color(UIColor.systemBackground)
+                        .frame(width: geo.size.width, height: geo.size.height)
                 }
-                .contentShape(Rectangle())
-                .background {
-                    GeometryReader { geo in
-                        Color(UIColor.systemBackground)
-                            .frame(width: geo.size.width, height: geo.size.height)
-                    }
-                }
+            }
         }
-        .animation(.default, value: localList)
+        .animation(.default, value: list)
     }
     
     @ViewBuilder
     private func rowDecider(list:[T], item:Binding<T>, index:Int) -> some View {
         if useDefaultRowBuilder {
-            defaultRowBuilder(list: list, item: item, index: index)
+            defaultRowBuilder(index: index)
         } else {
             rowBuilder(list, item, index)
                 .contentShape(Rectangle())
         }
     }
     
-    private func defaultRowBuilder(list:[T], item:Binding<T>, index:Int) -> some View {
+    @ViewBuilder
+    private func defaultRowBuilder(index:Int) -> some View {
+        let item = list[index]
         ZStack {
             Rectangle()
                 .foregroundColor(Color(uiColor: .systemBackground))
             VStack(spacing: 0) {
                 HStack {
-                    Text(leftLabelString(item.wrappedValue))
+                    Text(leftLabelString(item))
                         .fontWeight(.bold)
                     Spacer()
-                    Text(rightLabelString(item.wrappedValue))
+                    Text(rightLabelString(item))
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 10)
@@ -146,8 +149,14 @@ public struct CustomList<T: CustomListCompatible, Content: View>: View {
 }
 
 public extension CustomList where Content == EmptyView {
-    init(list:Binding<[T]>, tappedRowForItem:@escaping (Binding<T>) -> () = {_ in }, leftLabelString:@escaping (T) -> String = {_ in "Left"}, rightLabelString:@escaping (T) -> String = {_ in "Right"}, allowsReordering:Bool = true, isLazy:Bool = true) {
-        self.init(list:list, tappedRowForItem: tappedRowForItem, leftLabelString: leftLabelString, rightLabelString: rightLabelString, allowsReordering:allowsReordering, isLazy: isLazy, rowBuilder: { _,_,_ in EmptyView() })
+    init(list:Binding<[T]>,
+         tappedRowForItem: @escaping (Binding<T>) -> () = {_ in },
+         leftLabelString: @escaping (T) -> String = {_ in "Left"},
+         rightLabelString: @escaping (T) -> String = {_ in "Right"},
+         allowsReordering:Bool = true,
+         isLazy:Bool = true
+    ) {
+        self.init(list:list, allowsReordering:allowsReordering, isLazy: isLazy, tappedRowForItem: tappedRowForItem, leftLabelString: leftLabelString, rightLabelString: rightLabelString, rowBuilder: { _, _, _ in EmptyView() })
         self.useDefaultRowBuilder = true
     }
 }
@@ -184,20 +193,5 @@ fileprivate struct CustomListDropDelegate<T: Equatable> : DropDelegate {
     
     func dropUpdated(info: DropInfo) -> DropProposal? {
         return DropProposal(operation: .move)
-    }
-}
-
-private extension View {
-    /// Applies the given transform if the given condition evaluates to `true`.
-    /// - Parameters:
-    ///   - condition: The condition to evaluate.
-    ///   - transform: The transform to apply to the source `View`.
-    /// - Returns: Either the original `View` or the modified `View` if the condition is `true`.
-    @ViewBuilder func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
-        if condition {
-            transform(self)
-        } else {
-            self
-        }
     }
 }
