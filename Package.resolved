@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/kristian-kiraly/SwipeActions",
       "state" : {
-        "revision" : "239eff55679513538913624138dd1fcf7a394384",
-        "version" : "1.0.1"
+        "revision" : "f01ca2cef8d75a22078f4ab467ad360cdd320f22",
+        "version" : "1.0.6"
       }
     }
   ],

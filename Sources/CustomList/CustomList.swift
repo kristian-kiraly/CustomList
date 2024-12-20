@@ -33,11 +33,11 @@ public enum CellButtons: String, Identifiable {
 }
 
 public extension View {
-    @available(*, deprecated, message: "Will only support trailing buttons to accommodate swipe gestures. Use .addSwipeAction(SwipeAction) in the future instead")
+    @available(*, deprecated, message: "Will only support trailing buttons to accommodate swipe gestures. Use .addSwipeAction() in the future instead")
     @ViewBuilder
     func addButtonActions(leadingButtons: [CellButtons], trailingButton: [CellButtons], onClick: @escaping (CellButtons) -> Void) -> some View {
         let buttons = (leadingButtons + trailingButton).map { button in
-            SwipeAction(name: button.rawValue, action: {onClick(button)}, backgroundColor: button.backgroundColor)
+            SwipeAction(name: button.rawValue, backgroundColor: button.backgroundColor, action: {onClick(button)})
         }
         self.addSwipeActions(buttons)
     }
@@ -46,22 +46,22 @@ public extension View {
 public struct CustomList<T: CustomListCompatible, Content: View>: View {
     @Binding public var list: [T]
     public var allowsReordering: Bool = true
-    public var isLazy:Bool = true
-    public var tappedRowForItem: (Binding<T>) -> () = {_ in}
-    public var leftLabelString: (T) -> String = {_ in "Left"}
-    public var rightLabelString: (T) -> String = {_ in "Right"}
+    public var isLazy: Bool = true
+    public var tappedRowForItem: (Binding<T>) -> ()
+    public var leftLabelString: (T) -> String
+    public var rightLabelString: (T) -> String
     @ViewBuilder public var rowBuilder: ([T], Binding<T>, Int) -> Content
     @State private var useDefaultRowBuilder = false
     @State private var draggedItem: T?
     
     public init(
-        list:Binding<[T]>,
-        tappedRowForItem:@escaping (Binding<T>) -> () = {_ in },
-        leftLabelString:@escaping (T) -> String = {_ in "Left"},
-        rightLabelString:@escaping (T) -> String = {_ in "Right"},
-        allowsReordering:Bool = true,
-        isLazy:Bool = true,
-        @ViewBuilder rowBuilder:@escaping ([T], Binding<T>, Int) -> Content
+        list: Binding<[T]>,
+        tappedRowForItem: @escaping (Binding<T>) -> () = { _ in },
+        leftLabelString: @escaping (T) -> String = { _ in "Left" },
+        rightLabelString: @escaping (T) -> String = { _ in "Right" },
+        allowsReordering: Bool = true,
+        isLazy: Bool = true,
+        @ViewBuilder rowBuilder: @escaping ([T], Binding<T>, Int) -> Content
     ) {
         self._list = list
         self.allowsReordering = allowsReordering
@@ -132,7 +132,7 @@ public struct CustomList<T: CustomListCompatible, Content: View>: View {
     }
     
     @ViewBuilder
-    private func rowDecider(list:[T], item:Binding<T>, index:Int) -> some View {
+    private func rowDecider(list: [T], item: Binding<T>, index: Int) -> some View {
         if useDefaultRowBuilder {
             defaultRowBuilder(index: index)
         } else {
@@ -142,7 +142,7 @@ public struct CustomList<T: CustomListCompatible, Content: View>: View {
     }
     
     @ViewBuilder
-    private func defaultRowBuilder(index:Int) -> some View {
+    private func defaultRowBuilder(index: Int) -> some View {
         let item = list[index]
         ZStack {
             Rectangle()
@@ -167,12 +167,12 @@ public struct CustomList<T: CustomListCompatible, Content: View>: View {
 }
 
 public extension CustomList where Content == EmptyView {
-    init(list:Binding<[T]>,
-         tappedRowForItem: @escaping (Binding<T>) -> () = {_ in },
-         leftLabelString: @escaping (T) -> String = {_ in "Left"},
-         rightLabelString: @escaping (T) -> String = {_ in "Right"},
-         allowsReordering:Bool = true,
-         isLazy:Bool = true
+    init(list: Binding<[T]>,
+         tappedRowForItem: @escaping (Binding<T>) -> () = { _ in },
+         leftLabelString: @escaping (T) -> String = { _ in "Left" },
+         rightLabelString: @escaping (T) -> String = { _ in "Right" },
+         allowsReordering: Bool = true,
+         isLazy: Bool = true
     ) {
         self.init(list:list, tappedRowForItem: tappedRowForItem, leftLabelString: leftLabelString, rightLabelString: rightLabelString, allowsReordering:allowsReordering, isLazy: isLazy, rowBuilder: { _, _, _ in EmptyView() })
         self.useDefaultRowBuilder = true
