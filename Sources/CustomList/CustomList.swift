@@ -53,6 +53,7 @@ public struct CustomList<T: CustomListCompatible, Content: View>: View {
     @ViewBuilder public var rowBuilder: ([T], Binding<T>, Int) -> Content
     @State private var useDefaultRowBuilder = false
     @State private var draggedItem: T?
+    @State private var swipeDrawerOpen = false
     
     public init(
         list: Binding<[T]>,
@@ -84,6 +85,8 @@ public struct CustomList<T: CustomListCompatible, Content: View>: View {
                 }
             }
         }
+        // Suspend reorder drags while any swipe-actions drawer is open.
+        .onPreferenceChange(SwipeActionsDrawerOpenPreferenceKey.self) { swipeDrawerOpen = $0 }
     }
     
     private func indexOfItem(item: T) -> Int {
@@ -105,7 +108,9 @@ public struct CustomList<T: CustomListCompatible, Content: View>: View {
             let index = indexOfItem(item: item)
             let item = Binding { underlyingItemForItem(item: item) } set: { setItem(item: $0) }
             Group {
-                if allowsReordering {
+                // While a swipe-actions drawer is open, don't let a long-press
+                // lift a row for reordering with its drawer showing.
+                if allowsReordering && !swipeDrawerOpen {
                     rowDecider(list: list, item: item, index: index)
                         .onDrag {
                             self.draggedItem = item.wrappedValue
