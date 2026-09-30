@@ -108,15 +108,21 @@ public struct CustomList<T: CustomListCompatible, Content: View>: View {
             let index = indexOfItem(item: item)
             let item = Binding { underlyingItemForItem(item: item) } set: { setItem(item: $0) }
             Group {
-                // While a swipe-actions drawer is open, don't let a long-press
-                // lift a row for reordering with its drawer showing.
-                if allowsReordering && !swipeDrawerOpen {
+                // Note: the if/else below must only depend on allowsReordering
+                // (fixed at init). Gating on the drawer-open preference here
+                // would swap the row's view hierarchy every time a drawer
+                // opens/closes and reset the rows' state (including the open
+                // drawer itself). Long-press suppression while a drawer is
+                // open lives in SwipeActions' overlay; the drop delegate's
+                // isEnabled is a backstop so a reorder can never land with a
+                // drawer showing.
+                if allowsReordering {
                     rowDecider(list: list, item: item, index: index)
                         .onDrag {
                             self.draggedItem = item.wrappedValue
                             return NSItemProvider(item: nil, typeIdentifier: T.dragIdentifier)
                         }
-                        .onDrop(of: [.data], delegate: CustomListDropDelegate(item: item.wrappedValue, items: $list, draggedItem: $draggedItem))
+                        .onDrop(of: [.data], delegate: CustomListDropDelegate(item: item.wrappedValue, items: $list, draggedItem: $draggedItem, isEnabled: allowsReordering && !swipeDrawerOpen))
                 } else {
                     rowDecider(list: list, item: item, index: index)
                 }
@@ -192,12 +198,14 @@ fileprivate struct CustomListDropDelegate<T: Equatable> : DropDelegate {
     let item : T
     @Binding var items : [T]
     @Binding var draggedItem : T?
+    var isEnabled : Bool = true
 
     func performDrop(info: DropInfo) -> Bool {
-        return true
+        return isEnabled
     }
 
     func dropEntered(info: DropInfo) {
+        guard isEnabled else { return }
         guard let draggedItem = self.draggedItem else {
             return
         }
@@ -215,6 +223,6 @@ fileprivate struct CustomListDropDelegate<T: Equatable> : DropDelegate {
     }
     
     func dropUpdated(info: DropInfo) -> DropProposal? {
-        return DropProposal(operation: .move)
+        return isEnabled ? DropProposal(operation: .move) : nil
     }
 }
