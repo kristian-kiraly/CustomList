@@ -112,10 +112,13 @@ public struct CustomList<T: CustomListCompatible, Content: View>: View {
                 // (fixed at init). Gating on the drawer-open preference here
                 // would swap the row's view hierarchy every time a drawer
                 // opens/closes and reset the rows' state (including the open
-                // drawer itself). Long-press suppression while a drawer is
-                // open lives in SwipeActions' overlay; the drop delegate's
-                // isEnabled is a backstop so a reorder can never land with a
-                // drawer showing.
+                // drawer itself).
+                //
+                // While any drawer is open, a high-priority long-press on every
+                // row swallows the press so no reorder drag can start list-wide.
+                // The mask is just a parameter (no structural change), so row
+                // state is preserved. It fails on movement, so scrolling still
+                // works. The drop delegate's isEnabled is a backstop.
                 if allowsReordering {
                     rowDecider(list: list, item: item, index: index)
                         .onDrag {
@@ -123,6 +126,10 @@ public struct CustomList<T: CustomListCompatible, Content: View>: View {
                             return NSItemProvider(item: nil, typeIdentifier: T.dragIdentifier)
                         }
                         .onDrop(of: [.data], delegate: CustomListDropDelegate(item: item.wrappedValue, items: $list, draggedItem: $draggedItem, isEnabled: allowsReordering && !swipeDrawerOpen))
+                        .highPriorityGesture(
+                            LongPressGesture(minimumDuration: 0.25).onEnded { _ in },
+                            including: swipeDrawerOpen ? .all : .none
+                        )
                 } else {
                     rowDecider(list: list, item: item, index: index)
                 }
